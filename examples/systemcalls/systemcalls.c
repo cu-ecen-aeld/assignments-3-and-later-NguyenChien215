@@ -1,4 +1,9 @@
 #include "systemcalls.h"
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 /**
  * @param cmd the command to execute with system()
@@ -9,7 +14,15 @@
 */
 bool do_system(const char *cmd)
 {
-
+    int result = system(cmd);
+    bool IsCommandRun;
+    if(result == 0)
+    {
+        IsCommandRun = true;
+    }
+    else{
+        IsCommandRun = false;
+    }
 /*
  * TODO  add your code here
  *  Call the system() function with the command set in the cmd
@@ -17,7 +30,7 @@ bool do_system(const char *cmd)
  *   or false() if it returned a failure
 */
 
-    return true;
+    return IsCommandRun;
 }
 
 /**
@@ -40,14 +53,35 @@ bool do_exec(int count, ...)
     va_start(args, count);
     char * command[count+1];
     int i;
+    bool result = true;
+
     for(i=0; i<count; i++)
     {
         command[i] = va_arg(args, char *);
     }
     command[count] = NULL;
-    // this line is to avoid a compile warning before your implementation is complete
-    // and may be removed
-    command[count] = command[count];
+
+    pid_t child_process = fork();
+
+    if(child_process < 0) // error
+    {
+        result = false;
+    }
+    else if (child_process == 0) // in child process
+    {
+        int rc = execv(command[0], command);
+        exit(rc);
+    }
+    else {
+        int status;
+        int rc2 = waitpid(child_process, &status, 0);
+        if (rc2 < 0 || status != 0) result = false; // error
+    }
+    
+    va_end(args);
+
+    return result;
+    
 
 /*
  * TODO:
@@ -59,9 +93,6 @@ bool do_exec(int count, ...)
  *
 */
 
-    va_end(args);
-
-    return true;
 }
 
 /**
@@ -75,16 +106,38 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     va_start(args, count);
     char * command[count+1];
     int i;
+    bool result = true;
+
     for(i=0; i<count; i++)
     {
         command[i] = va_arg(args, char *);
     }
     command[count] = NULL;
-    // this line is to avoid a compile warning before your implementation is complete
-    // and may be removed
-    command[count] = command[count];
 
+    pid_t child_process = fork();
+    int fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644);
+    if (fd < 0) 
+        exit(fd);
 
+    switch (child_process) {
+    case -1: //error
+        result = false;
+    case 0: // In child process
+        int rc = dup2(fd, 1);
+        if ( rc < 0) 
+        {
+            exit(rc);
+        }
+        rc = execv(command[0], command);
+        exit(rc); // if we are here, execv failed
+        
+    default: 
+        int status;
+        int rc2 = waitpid(child_process, &status, 0);
+        if (rc2 < 0 || status != 0) result = false; // error
+        
+    /* do whatever the parent wants to do. */
+    }
 /*
  * TODO
  *   Call execv, but first using https://stackoverflow.com/a/13784315/1446624 as a refernce,
@@ -93,7 +146,8 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *
 */
 
+    close(fd);
     va_end(args);
 
-    return true;
+    return result;
 }
