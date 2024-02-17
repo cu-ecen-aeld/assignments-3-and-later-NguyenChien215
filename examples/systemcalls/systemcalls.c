@@ -69,13 +69,12 @@ bool do_exec(int count, ...)
     }
     else if (child_process == 0) // in child process
     {
-        int rc = execv(command[0], command);
-        exit(rc);
+        execv(command[0], command);
+        exit(1);
     }
     else {
         int status;
-        int rc2 = waitpid(child_process, &status, 0);
-        if (rc2 < 0 || status != 0) result = false; // error
+        if (waitpid(child_process, &status, 0) < 0 || status != 0) result = false; // error
     }
     
     va_end(args);
@@ -114,39 +113,33 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     }
     command[count] = NULL;
 
-    pid_t child_process = fork();
+    pid_t child_process2 = fork();
     int fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644);
     if (fd < 0) 
-        exit(fd);
-
-    switch (child_process) {
-    case -1: //error
-        result = false;
-        break;
-    case 0: // In child process
-        int rc = dup2(fd, 1);
-        if (rc < 0) 
-        {
-            exit(rc);
-        }
-        rc = execv(command[0], command);
-        exit(rc); // if we are here, execv failed
-        break;
-    default: 
-        int status;
-        int rc2 = waitpid(child_process, &status, 0);
-        if (rc2 < 0 || status != 0) result = false; // error
-        break;
-        
-    /* do whatever the parent wants to do. */
+    {   
+        perror("Error");
+        exit(1);
     }
-/*
- * TODO
- *   Call execv, but first using https://stackoverflow.com/a/13784315/1446624 as a refernce,
- *   redirect standard out to a file specified by outputfile.
- *   The rest of the behaviour is same as do_exec()
- *
-*/
+        
+    
+    if(child_process2 == -1)
+    {
+        result = false;
+    }
+    else if (child_process2 == 0)
+    {
+        if (dup2(fd, 1) < 0) 
+        {
+            exit(1);
+        }
+        execv(command[0], command);
+        exit(1); // if we are here, execv failed
+    }
+    else
+    {
+        int status;
+        if (waitpid(child_process2, &status, 0) < 0 || status != 0) result = false; // error
+    }
 
     close(fd);
     va_end(args);
