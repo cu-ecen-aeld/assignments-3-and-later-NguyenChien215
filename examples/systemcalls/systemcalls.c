@@ -122,19 +122,21 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     switch (child_process) {
     case -1: //error
         result = false;
+        break;
     case 0: // In child process
         int rc = dup2(fd, 1);
-        if ( rc < 0) 
+        if (rc < 0) 
         {
             exit(rc);
         }
         rc = execv(command[0], command);
         exit(rc); // if we are here, execv failed
-        
+        break;
     default: 
         int status;
         int rc2 = waitpid(child_process, &status, 0);
         if (rc2 < 0 || status != 0) result = false; // error
+        break;
         
     /* do whatever the parent wants to do. */
     }
