@@ -38,7 +38,7 @@ if [ ! -e ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ]; then
     git checkout ${KERNEL_VERSION}
 
     # Build the kernel image
-    git apply /home/chien/Desktop/Coursera/Linux_Embedded_System/assignments-3-and-later-NguyenChien215/e33a814e772cdc36436c8c188d8c42d019fda639.patch
+    # git apply /home/chien/Desktop/Coursera/Linux_Embedded_System/assignments-3-and-later-NguyenChien215/e33a814e772cdc36436c8c188d8c42d019fda639.patch
     make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} mrproper # "Deep clean" - the kernel buildtree - removing the .config file with any existing configurations
     make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} defconfig # Configure for our "virt" arm dev board we will simulate in QEMU
     make -j4 ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} all # Build a kernel image for booting with QEMU
