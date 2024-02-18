@@ -12,9 +12,6 @@ BUSYBOX_VERSION=1_33_1
 FINDER_APP_DIR=$(realpath $(dirname $0))
 ARCH=arm64
 CROSS_COMPILE=aarch64-none-linux-gnu-
-SYSROOT_DIR=$(realpath $(${CROSS_COMPILE}gcc --print-sysroot))
-
-echo "Using ${SYSROOT_DIR} as sysroot directory"
 
 if [ $# -lt 1 ]
 then
@@ -58,7 +55,8 @@ then
 fi
 
 # Create necessary base directories
-mkdir rootfs && cd rootfs
+mkdir -p ${OUTDIR}/rootfs
+cd ${OUTDIR}/rootfs
 mkdir -p bin dev etc home lib lib64 proc sbin sys tmp usr var
 mkdir -p usr/bin usr/lib usr/sbin var/log
 
@@ -74,7 +72,6 @@ then
     make defconfig
 else
     cd busybox
-
 fi
 
 # Make and install busybox
@@ -86,6 +83,7 @@ ${CROSS_COMPILE}readelf -a ${OUTDIR}/rootfs/bin/busybox | grep "program interpre
 ${CROSS_COMPILE}readelf -a ${OUTDIR}/rootfs/bin/busybox | grep "Shared library"
 
 # Add library dependencies to rootfs
+SYSROOT_DIR=$(${CROSS_COMPILE}gcc -print-sysroot)
 cp ${SYSROOT_DIR}/lib/ld-linux-aarch64.so.1 ${OUTDIR}/rootfs/lib
 cp ${SYSROOT_DIR}/lib64/libm.so.6 ${OUTDIR}/rootfs/lib64
 cp ${SYSROOT_DIR}/lib64/libresolv.so.2 ${OUTDIR}/rootfs/lib64
@@ -102,10 +100,17 @@ make CROSS_COMPILE=${CROSS_COMPILE} writer
 
 # Copy the finder related scripts and executables to the /home directory
 # on the target rootfs
-cp -r ./* ${OUTDIR}/rootfs/home
+# cp -r ./* ${OUTDIR}/rootfs/home
+cp ${FINDER_APP_DIR}/finder.sh ${OUTDIR}/rootfs/home/
+cp ${FINDER_APP_DIR}/finder-test.sh ${OUTDIR}/rootfs/home/
+cp ${FINDER_APP_DIR}/writer ${OUTDIR}/rootfs/home/
+cp ${FINDER_APP_DIR}/autorun-qemu.sh ${OUTDIR}/rootfs/home/
+cp -r ${FINDER_APP_DIR}/conf/ ${OUTDIR}/rootfs/home/
 
 # Chown the root directory
-sudo chown -R root:root ${OUTDIR}/rootfs
+cd ${OUTDIR}/rootfs
+sudo chown -R root:root *
+# sudo chown -R root:root ${OUTDIR}/rootfs
 
 # Create initramfs.cpio.gz
 cd "${OUTDIR}/rootfs"
