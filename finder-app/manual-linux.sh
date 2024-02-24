@@ -6,12 +6,15 @@ set -e
 set -u
 
 OUTDIR=/tmp/aeld
-KERNEL_REPO=git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
+KERNEL_REPO=https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
 KERNEL_VERSION=v5.1.10
 BUSYBOX_VERSION=1_33_1
 FINDER_APP_DIR=$(realpath $(dirname $0))
 ARCH=arm64
 CROSS_COMPILE=aarch64-none-linux-gnu-
+SYSROOT_DIR=$(realpath $(${CROSS_COMPILE}gcc --print-sysroot))
+
+echo "Using ${SYSROOT_DIR} as sysroot directory"
 
 if [ $# -lt 1 ]
 then
@@ -24,18 +27,18 @@ fi
 mkdir -p ${OUTDIR}
 
 cd "$OUTDIR"
-if [ ! -d "${OUTDIR}/linux-stable" ]; then
+if [ ! -d "${OUTDIR}/linux" ]; then
     #Clone only if the repository does not exist.
 	echo "CLONING GIT LINUX STABLE VERSION ${KERNEL_VERSION} IN ${OUTDIR}"
 	git clone ${KERNEL_REPO} --depth 1 --single-branch --branch ${KERNEL_VERSION}
 fi
-if [ ! -e ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ]; then
-    cd linux-stable
+if [ ! -e ${OUTDIR}/linux/arch/${ARCH}/boot/Image ]; then
+    cd linux
     echo "Checking out version ${KERNEL_VERSION}"
     git checkout ${KERNEL_VERSION}
 
     # Build the kernel image
-    # git apply /home/chien/Desktop/Coursera/Linux_Embedded_System/assignments-3-and-later-NguyenChien215/e33a814e772cdc36436c8c188d8c42d019fda639.patch
+    # git apply /home/chien/Desktop/Coursera/Linux_Embedded_System/assignments-3-and-later-NguyenChien215
     make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} mrproper # "Deep clean" - the kernel buildtree - removing the .config file with any existing configurations
     make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} defconfig # Configure for our "virt" arm dev board we will simulate in QEMU
     make -j4 ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} all # Build a kernel image for booting with QEMU
@@ -44,7 +47,7 @@ if [ ! -e ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ]; then
 fi
 
 echo "Adding the Image in outdir"
-cp ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ${OUTDIR}
+cp ${OUTDIR}/linux/arch/${ARCH}/boot/Image ${OUTDIR}
 
 echo "Creating the staging directory for the root filesystem"
 cd "$OUTDIR"
@@ -55,8 +58,7 @@ then
 fi
 
 # Create necessary base directories
-mkdir -p ${OUTDIR}/rootfs
-cd ${OUTDIR}/rootfs
+mkdir rootfs && cd rootfs
 mkdir -p bin dev etc home lib lib64 proc sbin sys tmp usr var
 mkdir -p usr/bin usr/lib usr/sbin var/log
 
@@ -72,6 +74,7 @@ then
     make defconfig
 else
     cd busybox
+
 fi
 
 # Make and install busybox
@@ -83,7 +86,6 @@ ${CROSS_COMPILE}readelf -a ${OUTDIR}/rootfs/bin/busybox | grep "program interpre
 ${CROSS_COMPILE}readelf -a ${OUTDIR}/rootfs/bin/busybox | grep "Shared library"
 
 # Add library dependencies to rootfs
-SYSROOT_DIR=$(${CROSS_COMPILE}gcc -print-sysroot)
 cp ${SYSROOT_DIR}/lib/ld-linux-aarch64.so.1 ${OUTDIR}/rootfs/lib
 cp ${SYSROOT_DIR}/lib64/libm.so.6 ${OUTDIR}/rootfs/lib64
 cp ${SYSROOT_DIR}/lib64/libresolv.so.2 ${OUTDIR}/rootfs/lib64
@@ -100,17 +102,10 @@ make CROSS_COMPILE=${CROSS_COMPILE} writer
 
 # Copy the finder related scripts and executables to the /home directory
 # on the target rootfs
-# cp -r ./* ${OUTDIR}/rootfs/home
-cp ${FINDER_APP_DIR}/finder.sh ${OUTDIR}/rootfs/home/
-cp ${FINDER_APP_DIR}/finder-test.sh ${OUTDIR}/rootfs/home/
-cp ${FINDER_APP_DIR}/writer ${OUTDIR}/rootfs/home/
-cp ${FINDER_APP_DIR}/autorun-qemu.sh ${OUTDIR}/rootfs/home/
-cp -r ${FINDER_APP_DIR}/conf/ ${OUTDIR}/rootfs/home/
+cp -r ./* ${OUTDIR}/rootfs/home
 
 # Chown the root directory
-cd ${OUTDIR}/rootfs
-sudo chown -R root:root *
-# sudo chown -R root:root ${OUTDIR}/rootfs
+sudo chown -R root:root ${OUTDIR}/rootfs
 
 # Create initramfs.cpio.gz
 cd "${OUTDIR}/rootfs"
