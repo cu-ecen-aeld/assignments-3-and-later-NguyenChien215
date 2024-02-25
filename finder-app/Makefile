@@ -1,5 +1,8 @@
 # Makefile for "writer" application
 
+CFLAGS = -Wall -Wextra -std=c99
+TARGET = writer
+
 # Compiler settings
 ifeq ($(CROSS_COMPILE),)
 	CC = gcc
@@ -7,26 +10,26 @@ else
 	CC = $(CROSS_COMPILE)gcc
 endif
 
-CFLAGS = -Wall -Wextra -std=c99
-
 # Source files
 SRCS := writer.c
 
 # Object files
 OBJS := $(SRCS:.c=.o)
 
+# Default target
+.PHONY: all
+all: $(TARGET)
+
 # Rules
 %.o : %.c
 	$(CC) -c $< $(CFLAGS) -o $@ 
 
 writer : $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) $(INCLUDES) $(OBJS) -o $(TARGET) $(LDFLAGS)
 	
-# Default target
-.PHONY: all
-all: writer
+
  
 # Clean target
 .PHONY: clean
 clean:
-	rm -f writer $(OBJS)
+	rm -f $(TARGET) $(OBJS)
