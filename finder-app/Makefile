@@ -21,7 +21,11 @@ OBJS := $(SRCS:.c=.o)
 
 writer : $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
-
+	
+# Default target
+.PHONY: all
+all: writer
+ 
 # Clean target
 .PHONY: clean
 clean:
