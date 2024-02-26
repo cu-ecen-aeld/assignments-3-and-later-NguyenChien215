@@ -4,11 +4,11 @@ CFLAGS = -Wall -Wextra -std=c99
 TARGET = writer
 
 # Compiler settings
-#ifeq ($(CROSS_COMPILE),)
-#	CC = gcc
-#else
-#	CC = $(CROSS_COMPILE)gcc
-#endif
+ifeq ($(CROSS_COMPILE),)
+	CC = gcc
+else
+	CC = $(CROSS_COMPILE)gcc
+endif
 
 # Source files
 SRCS := writer.c
