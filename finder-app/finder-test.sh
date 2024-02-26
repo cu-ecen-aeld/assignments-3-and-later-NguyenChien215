@@ -1,7 +1,7 @@
 #!/bin/sh
 # Tester script for assignment 1 and assignment 2
 # Author: Siddhant Jajoo
-# Edited by: Suhas-Reddy-S
+# Edited by: NguyenChien215
 
 set -e
 set -u
