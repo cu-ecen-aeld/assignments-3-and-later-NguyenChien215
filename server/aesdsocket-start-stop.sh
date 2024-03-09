@@ -1,28 +1,16 @@
-# !/bin/sh
-# Author: Chien
+#!/bin/sh
 
-echo -n "Number of args: "
-echo $#
-
-if [ $# -ne 1 ]; then
-    echo "Error, you must provide either: -S or -K"
-    exit 1
-fi
-
-w_mode=$1
-
-case $w_mode in
+case "$1" in
     start)
-        echo "Starting socket 9000" 
-        start-stop-daemon -S -n aesdsocket -a /usr/bin/aesdsocket -- -d
+        echo "Starting aesdsocket..."
+        start-stop-daemon -S -n aesdsocket -a aesdsocket -- -d
         ;;
     stop)
-        echo "Stopping socket 9000" 
+        echo "Stopping aesdsocket..."
         start-stop-daemon -K -n aesdsocket
         ;;
     *)
-        echo "Invalid option!"
-    exit 1
+        echo "Usage: $0 {start|stop}"
+        exit 1
+        ;;
 esac
-
-exit 0
